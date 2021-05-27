@@ -140,6 +140,10 @@ class bidtimer(QThread):
     signal_currentTime = pyqtSignal(str)
     signal_secsToNextOp = pyqtSignal(int)
 
+    signal_groupBoxRed0 = pyqtSignal()
+    signal_groupBoxRed1 = pyqtSignal()
+    signal_groupBoxRed2 = pyqtSignal()
+
     def __init__(self, bid):
         super().__init__()  # initial QThread
         self.bidobj = bid
@@ -150,7 +154,7 @@ class bidtimer(QThread):
                     "secondbid_time": [None, self.bidobj.secondbid, True],          #secondbid_time
                     "secondsubmit_time": [None, self.bidobj.secondsubmit, True]     #secondsubmit_time
                 }  
-        self.timetriggers_list = None     
+        self.timetriggers_list = None    
 
     def time_initialize(self):
         self.setInitialTime(QTime(12,0,0)) # initialize to 12:00:00
@@ -197,12 +201,19 @@ class bidtimer(QThread):
     def run(self):
         for i in range(len(self.timetriggers_list)):
 
+            if i == 0 :
+                self.signal_groupBoxRed0.emit()
+            elif i == 1 or i == 2:
+                self.signal_groupBoxRed1.emit()
+            elif i == 3 or i == 4:
+                self.signal_groupBoxRed2.emit()
+
             cont = True
             while cont:
                 time_now = datetime.datetime.now()
                 time_now_str = time_now.strftime('%H:%M:%S')
                 secs = (self.timetriggers_list[i][0]-time_now).seconds
-                print(time_now.strftime('%H:%M:%S.%f'), secs)
+                #print(time_now.strftime('%H:%M:%S.%f'), secs)
                 self.signal_currentTime.emit(time_now_str)
                 self.signal_secsToNextOp.emit(secs)
 

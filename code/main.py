@@ -24,6 +24,11 @@ class showGUI(QMainWindow, Ui_MainWindow):
         bid = Bid.bidevent(monitor_num)   
         self.timer = Bid.bidtimer(bid)
 
+        # connect groupBox to change board color
+        self.timer.signal_groupBoxRed0.connect(self.changeInitialGroupBox)
+        self.timer.signal_groupBoxRed1.connect(self.changeFirstGroupBox)
+        self.timer.signal_groupBoxRed2.connect(self.changeSecondGroupBox)
+
         # connect gui time button to slot
         self.setInitialTime.pressed.connect(lambda: self.timer.setInitialTime(self.editInitialTime.time()))
         self.setFirstBidTime.pressed.connect(lambda: self.timer.setFirstbidTime(self.editFirstBidTime.time()))
@@ -67,10 +72,24 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.timer.signal_currentTime.connect(self.clockLabel)
         self.timer.signal_secsToNextOp.connect(self.countdownLabel)
 
-        self.timer.bidobj.bidevent_initialize()
-        self.timer.time_initialize()
+        self.setDefault()
 
         self.timer.start()
+
+    def changeInitialGroupBox(self):
+        self.initialGroupBox.setStyleSheet("QGroupBox#initialGroupBox{border: 1px solid red;}")
+        self.firstGroupBox.setStyleSheet("QGroupBox#firstGroupBox")
+        self.secondGroupBox.setStyleSheet("QGroupBox#secondGroupBox")
+
+    def changeFirstGroupBox(self):
+        self.initialGroupBox.setStyleSheet("QGroupBox#initialGroupBox")
+        self.firstGroupBox.setStyleSheet("QGroupBox#firstGroupBox{border: 1px solid red;}")
+        self.secondGroupBox.setStyleSheet("QGroupBox#secondGroupBox")
+
+    def changeSecondGroupBox(self):
+        self.initialGroupBox.setStyleSheet("QGroupBox#initialGroupBox")
+        self.firstGroupBox.setStyleSheet("QGroupBox#firstGroupBox")
+        self.secondGroupBox.setStyleSheet("QGroupBox#secondGroupBox{border: 1px solid red;}")
 
     def showTime(self, label, edit, t):
         label.setText(t.toString("hh:mm:ss"))
@@ -125,12 +144,12 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.timer.setSecondsubmitTime(trigger)  
 
     def setDefault(self):
-        self.timer.setInitialTime(QTime(12,0,0))
-        self.timer.setFirstbidTime(QTime(12,0,0))
-        self.timer.setFirstsubmitTime(QTime(12,0,0))
-        self.timer.setSecondbidTime(QTime(12,0,0))
-        self.timer.setSecondsubmitTime(QTime(12,0,0))
-        self.timer.bidobj.setFirstbid_price("300")
+        self.timer.setInitialTime(QTime(11,10,0))
+        self.timer.setFirstbidTime(QTime(11,29,43))
+        self.timer.setFirstsubmitTime(QTime(11,29,47))
+        self.timer.setSecondbidTime(QTime(11,29,53))
+        self.timer.setSecondsubmitTime(QTime(11,29,55))
+        self.timer.bidobj.setFirstbid_price("1000")
         self.timer.bidobj.setSecondbid_price("1000")
 
     def clockLabel(self, s):
