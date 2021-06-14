@@ -36,12 +36,6 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.editSecondBidTime.timeChanged.connect(self.timer.setSecondbidTime)
         self.editSecondSubmitTime.timeChanged.connect(self.timer.setSecondsubmitTime)
 
-        # self.setInitialTime.pressed.connect(lambda: self.timer.setInitialTime(self.editInitialTime.time()))
-        # self.setFirstBidTime.pressed.connect(lambda: self.timer.setFirstbidTime(self.editFirstBidTime.time()))
-        # self.setFirstSubmitTime.pressed.connect(lambda: self.timer.setFirstsubmitTime(self.editFirstSubmitTime.time()))
-        # self.setSecondBidTime.pressed.connect(lambda: self.timer.setSecondbidTime(self.editSecondBidTime.time()))
-        # self.setSecondSubmitTime.pressed.connect(lambda: self.timer.setSecondsubmitTime(self.editSecondSubmitTime.time()))
-
         # connect signal from timer to gui lable slot func      
         self.timer.signal_initialTime.connect(lambda x=self.timer.signal_initialTime: self.showTime(self.initialTime, self.editInitialTime, x))
         self.timer.signal_firstbidTime.connect(lambda x=self.timer.signal_firstbidTime: self.showTime(self.firstBidTime, self.editFirstBidTime, x))
@@ -56,9 +50,7 @@ class showGUI(QMainWindow, Ui_MainWindow):
         # connect gui value button to slot
         self.editFirstBidValue.returnPressed.connect(lambda: self.timer.bidobj.setFirstbid_price(self.editFirstBidValue.text()))
         self.editSecondBidValue.returnPressed.connect(lambda: self.timer.bidobj.setSecondbid_price(self.editSecondBidValue.text()))
-        # self.setFirstBidValue.pressed.connect(lambda: self.timer.bidobj.setFirstbid_price(self.editFirstBidValue.text()))
-        # self.setSecondBidValue.pressed.connect(lambda: self.timer.bidobj.setSecondbid_price(self.editSecondBidValue.text()))
-
+     
         # connect signal from bid to gui label slot func
         self.timer.bidobj.signal_firstbidPrice.connect(self.showValue_firstBid)
         self.timer.bidobj.signal_secondbidPrice.connect(self.showValue_secondBid)
