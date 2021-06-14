@@ -149,8 +149,8 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.timer.setFirstsubmitTime(QTime(11,29,47))
         self.timer.setSecondbidTime(QTime(11,29,53))
         self.timer.setSecondsubmitTime(QTime(11,29,55))
-        self.timer.bidobj.setFirstbid_price("1000")
-        self.timer.bidobj.setSecondbid_price("1000")
+        self.timer.bidobj.setFirstbid_price("400")
+        self.timer.bidobj.setSecondbid_price("500")
 
     def clockLabel(self, s):
         self.currentTime.setText(s)
