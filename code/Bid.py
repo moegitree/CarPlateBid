@@ -79,7 +79,7 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        time.sleep(0.15)
+        time.sleep(0.3)
         
         t = ip.button_thread(self.monitor_num, [self.buttons[2]])
         t.start()
@@ -93,7 +93,13 @@ class bidevent(QObject):
     def firstsubmit(self):  #for callback
         mouse = m_Controller()
 
-        mouse.position = (self.buttons[2]["location"][0], self.buttons[2]["location"][1])   # if button location not found, exit script with error 
+        mouse.position = self.buttons[2]["location"]  # if button location not found, exit script with error 
+        mouse.press(m_Button.left)
+        mouse.release(m_Button.left)
+
+        time.sleep(1)
+
+        mouse.position = (self.buttons[2]["location"][0]+100, self.buttons[2]["location"][1]-20)
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
