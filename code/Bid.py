@@ -30,6 +30,11 @@ class bidevent(QObject):
                     {   "name":  "ok_button",
                         "path": r".\pic\ok_button.png",
                         "location": (None, None)
+                    },
+                    {   
+                        "name":  "ok2_button",
+                        "path": r".\pic\ok2_button.png",
+                        "location": (None, None)
                     }
                 ] 
         self.bidprice = { 
@@ -97,9 +102,11 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        time.sleep(1)
+        t = ip.button_thread(self.monitor_num, [self.buttons[3]], 1)
+        t.start()
+        t.join()
 
-        mouse.position = (self.buttons[2]["location"][0]+100, self.buttons[2]["location"][1]-20)
+        mouse.position = (self.buttons[3]["location"][0], self.buttons[3]["location"][1])   # if button location not found, exit script with error 
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
@@ -122,7 +129,12 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        time.sleep(0.15)
+        time.sleep(0.3)
+        
+        t = ip.button_thread(self.monitor_num, [self.buttons[2]])
+        t.start()
+        t.join()
+        self.signal_buttonCoordinate.emit([self.buttons[i]["location"] for i in range(len(self.buttons))], [0,0,1])
 
         mouse.position = (self.buttons[2]["location"][0]+200, self.buttons[2]["location"][1]-100)   # if button location not found, exit script with error 
         mouse.press(m_Button.left)
@@ -132,6 +144,14 @@ class bidevent(QObject):
         mouse = m_Controller()
 
         mouse.position = (self.buttons[2]["location"][0], self.buttons[2]["location"][1])   # if button location not found, exit script with error 
+        mouse.press(m_Button.left)
+        mouse.release(m_Button.left)
+
+        t = ip.button_thread(self.monitor_num, [self.buttons[3]], 1)
+        t.start()
+        t.join()
+
+        mouse.position = (self.buttons[3]["location"][0], self.buttons[3]["location"][1])   # if button location not found, exit script with error 
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 

@@ -48,8 +48,8 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.editSecondBidValue.setValidator(QIntValidator(0, 65535))
 
         # connect gui value button to slot
-        self.editFirstBidValue.returnPressed.connect(lambda: self.timer.bidobj.setFirstbid_price(self.editFirstBidValue.text()))
-        self.editSecondBidValue.returnPressed.connect(lambda: self.timer.bidobj.setSecondbid_price(self.editSecondBidValue.text()))
+        self.editFirstBidValue.editingFinished.connect(lambda: self.timer.bidobj.setFirstbid_price(self.editFirstBidValue.text()))
+        self.editSecondBidValue.editingFinished.connect(lambda: self.timer.bidobj.setSecondbid_price(self.editSecondBidValue.text()))
      
         # connect signal from bid to gui label slot func
         self.timer.bidobj.signal_firstbidPrice.connect(self.showValue_firstBid)
@@ -128,27 +128,28 @@ class showGUI(QMainWindow, Ui_MainWindow):
 
     def setTestMode(self):
         now = QTime.currentTime()
-        trigger = now.addSecs(6)
+        sec = 5
+        trigger = now.addSecs(sec)
         self.timer.setInitialTime(trigger)
 
-        trigger = now.addSecs(6*2)
+        trigger = now.addSecs(sec*2)
         self.timer.setFirstbidTime(trigger)
 
-        trigger = now.addSecs(6*3)
+        trigger = now.addSecs(sec*3)
         self.timer.setFirstsubmitTime(trigger)
 
-        trigger = now.addSecs(6*4)
+        trigger = now.addSecs(sec*4)
         self.timer.setSecondbidTime(trigger)
         
-        trigger = now.addSecs(6*5)
+        trigger = now.addSecs(sec*5)
         self.timer.setSecondsubmitTime(trigger)  
 
     def setDefault(self):
-        self.timer.setInitialTime(QTime(11,10,0))
-        self.timer.setFirstbidTime(QTime(11,29,43))
-        self.timer.setFirstsubmitTime(QTime(11,29,47))
-        self.timer.setSecondbidTime(QTime(11,29,53))
-        self.timer.setSecondsubmitTime(QTime(11,29,55))
+        self.timer.setInitialTime(QTime(11,27,0))
+        self.timer.setFirstbidTime(QTime(11,29,41))
+        self.timer.setFirstsubmitTime(QTime(11,29,46))
+        self.timer.setSecondbidTime(QTime(11,29,50))
+        self.timer.setSecondsubmitTime(QTime(11,29,57))
         self.timer.bidobj.setFirstbid_price("400")
         self.timer.bidobj.setSecondbid_price("500")
 

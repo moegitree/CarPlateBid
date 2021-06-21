@@ -15,6 +15,11 @@ class imgFactory():
         self.offset_y = offset[1]
         self.scale = 1
 
+    #update img in class imgFactory, assume the new one has the same height and width as the old one
+    def updateImg(self, src): 
+        self.img_c = src
+        self.img_g = cv.cvtColor(self.img_c, cv.COLOR_BGR2GRAY)
+
     def resizeImg(self, scale):
         self.scale = scale
         self.img_c = cv.resize(self.img_c, None, fx=scale, fy=scale, interpolation=cv.INTER_AREA)   
@@ -23,8 +28,8 @@ class imgFactory():
         self.width = self.img_g.shape[1]
 
     def subRegion(self, p1, p2):
-        self.offset_x += p1[0]
-        self.offset_y += p1[1]
+        self.offsetSubRegion_x = self.offset_x + p1[0]
+        self.offsetSubRegion_y = self.offset_y + p1[1]
         self.img_c = self.img_c[p1[1]:p2[1], p1[0]:p2[0], :]
         self.img_g = self.img_g[p1[1]:p2[1], p1[0]:p2[0]]
 
@@ -67,10 +72,10 @@ class imgFactory():
 
         if (loc1 is not None) and (loc2 is not None):
             #print(minVal)
-            x1 = loc1[0] + self.offset_x
-            y1 = loc1[1] + self.offset_y
-            x2 = loc2[0] + self.offset_x
-            y2 = loc2[1] + self.offset_y
+            x1 = loc1[0] + self.offsetSubRegion_x
+            y1 = loc1[1] + self.offsetSubRegion_y
+            x2 = loc2[0] + self.offsetSubRegion_x
+            y2 = loc2[1] + self.offsetSubRegion_y
             #cv.rectangle(src, (x1, y1), (x2, y2), [0,0,255], thickness=2)
             return (x1, y1), (x2, y2)
         else:
@@ -86,32 +91,67 @@ class imgFactory():
 #     cv.imshow("tt", img)
 #     cv.waitKey(0)
 
+# thread for localizing specific button, return button's coordinate
 class button_thread(threading.Thread):
-    def __init__(self, n, buttons):
+    def __init__(self, n, buttons, flag=0):
         threading.Thread.__init__(self)
         self.monitor_num = n
         self.buttons = buttons
+        self.flag = flag
     
     def run(self):
+        if self.flag == 0:
+            self.buttonLoc1()
+        else:
+            self.buttonLoc2()
+
+    #localize specific button, return None if it not exist
+    def buttonLoc1(self):
         c = sc.screen(self.monitor_num)
         capture = c.capture()
         factory = imgFactory(capture, c.monitor_loc[0])
 
-        p1 = (int(c.monitor_size[0]/2), int(c.monitor_size[1]/4))
-        p2 = (int(c.monitor_size[0]*4/5), int(c.monitor_size[1]*3/4)) 
+        p1 = (int(c.monitor_size[0]/2), int(c.monitor_size[1]*1/6))
+        p2 = (int(c.monitor_size[0]*4/5), int(c.monitor_size[1]*5/6)) 
         factory.subRegion(p1, p2)
 
         for i in range(len(self.buttons)):
             img = cv.imread(self.buttons[i]["path"], cv.IMREAD_GRAYSCALE)
 
             r1, r2 = factory.getROI(img)
-            if (r1 is not None) and (r1 is not None):
+            if (r1 is not None) and (r2 is not None):
                 center = (int((r1[0] + r2[0])/2), int((r1[1] + r2[1])/2))
                 self.buttons[i]["location"] = center
 
+    #localize specific button, returen coordinate until it appears on screen
+    def buttonLoc2(self):
+        c = sc.screen(self.monitor_num)
+        capture = c.capture()
+        factory = imgFactory(capture, c.monitor_loc[0])
+
+        p1 = (int(c.monitor_size[0]/2), int(c.monitor_size[1]*1/6))
+        p2 = (int(c.monitor_size[0]*4/5), int(c.monitor_size[1]*5/6)) 
+        
+        cont = True
+        while cont:
+            capture = c.capture()
+            factory.updateImg(capture)
+            factory.subRegion(p1, p2)
+
+            for i in range(len(self.buttons)):
+                img = cv.imread(self.buttons[i]["path"], cv.IMREAD_GRAYSCALE)
+
+                r1, r2 = factory.getROI(img)
+                #print(r1, r2)
+                if (r1 is not None) and (r2 is not None):
+                    center = (int((r1[0] + r2[0])/2), int((r1[1] + r2[1])/2))
+                    self.buttons[i]["location"] = center
+                    cont = False
+                else:
+                    cont = True
 
 if __name__ == '__main__':
-    offer_path = r".\pic\offer_button.png"
+    offer_path = r".\pic\ok_button.png"
     offer = cv.imread(offer_path, cv.IMREAD_GRAYSCALE)
 
     add_path = r".\pic\add_button.png"
@@ -121,12 +161,12 @@ if __name__ == '__main__':
 
     while True:
         start = time.time()
-        ###
+        
         capture = c.capture()
         factory = imgFactory(capture, c.monitor_loc[0])
 
-        p1 = (int(c.monitor_size[0]/2), int(c.monitor_size[1]/4))
-        p2 = (int(c.monitor_size[0]*4/5), int(c.monitor_size[1]*3/4)) 
+        p1 = (int(c.monitor_size[0]/2), int(c.monitor_size[1]*1/6))
+        p2 = (int(c.monitor_size[0]*4/5), int(c.monitor_size[1]*5/6)) 
         factory.subRegion(p1, p2)
 
         r1_1, r1_2 = factory.getROI(add)
@@ -146,7 +186,6 @@ if __name__ == '__main__':
 
         if (r2_1 is not None) and (r2_2 is not None):
             offer_center = (int((r2_1[0] + r2_2[0])/2), int((r2_1[1] + r2_2[1])/2))
-            
             capture = cv.UMat(capture).get()
             cv.circle(capture, 
                 (offer_center[0]-c.monitor_loc[0][0], offer_center[1]-c.monitor_loc[0][1]), 
