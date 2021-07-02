@@ -22,7 +22,8 @@ class imgFactory():
 
     def resizeImg(self, scale):
         self.scale = scale
-        self.img_c = cv.resize(self.img_c, None, fx=scale, fy=scale, interpolation=cv.INTER_AREA)   
+        self.img_c = cv.resize(self.img_c, None, fx=scale, fy=scale, interpolation=cv.INTER_CUBIC) #inter_cubic is faster than inter_area
+        # self.img_c = cv.resize(self.img_c, None, fx=scale, fy=scale, interpolation=cv.INTER_AREA)   
         self.img_g = cv.cvtColor(self.img_c, cv.COLOR_BGR2GRAY)
         self.height = self.img_g.shape[0]
         self.width = self.img_g.shape[1]
@@ -67,8 +68,8 @@ class imgFactory():
         
         return minLoc1, minLoc2, minVal
 
-    def getROI(self, tmp_gray):
-        loc1, loc2, minVal = self.downSizeMatch(self.img_g, tmp_gray, 4)
+    def templateMatch(self, tmp):
+        loc1, loc2, minVal = self.downSizeMatch(self.img_g, tmp, 4)
 
         if (loc1 is not None) and (loc2 is not None):
             #print(minVal)
@@ -81,32 +82,97 @@ class imgFactory():
         else:
             return None, None     
 
-# if __name__ == '__main__':
-#     img = cv.imread(r'C:\Users\chen.zhiyuan\Documents\Python\AutoMouse\pic\add_button.png', cv.IMREAD_COLOR)
-#     gray= cv.cvtColor(img,cv.COLOR_BGR2GRAY)
-#     sift = cv.xfeatures2d.SIFT_create()
-#     kp = sift.detect(gray,None)
-#     img=cv.drawKeypoints(gray,kp,img)
+    def siftMatch(self, tmp):
+        MIN_MATCH_COUNT = 10
 
-#     cv.imshow("tt", img)
-#     cv.waitKey(0)
+        img1 = tmp
+        img2 = self.img_g
+
+        # Initiate SIFT detector
+        sift = cv.xfeatures2d.SIFT_create()
+
+        # find the keypoints and descriptors with SIFT
+        kp1, des1 = sift.detectAndCompute(img1, None)
+        kp2, des2 = sift.detectAndCompute(img2, None)
+
+        FLANN_INDEX_KDTREE = 0
+        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+        search_params = dict(checks = 50)
+        flann = cv.FlannBasedMatcher(index_params, search_params)
+
+        matches = flann.knnMatch(des1,des2,k=2)
+
+        # store all the good matches as per Lowe's ratio test.
+        good = []
+        for m,n in matches:
+            if m.distance < 0.7*n.distance:
+                good.append(m)
+
+        # use RANSAC to eliminate wrong matched points
+        if len(good)>MIN_MATCH_COUNT:
+            src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+            dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+
+            M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC,5.0)
+            matchesMask = mask.ravel().tolist()
+        else:
+            print ("Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
+            matchesMask = None
+
+
+        # calculate matched keypoints' center
+        count = 0
+        sum_x = 0
+        sum_y = 0
+        for i in range(len(good)):
+            if matchesMask is not None:     # matchesMask == None
+                if matchesMask[i] == 1:
+                    sum_x += kp2[good[i].trainIdx].pt[0]
+                    sum_y += kp2[good[i].trainIdx].pt[1]
+                    count += 1               
+                else:
+                    pass
+            else:                           # matchesMask != None
+                sum_x += kp2[good[i].trainIdx].pt[0]
+                sum_y += kp2[good[i].trainIdx].pt[1]
+                count += 1   
+
+        if count != 0:
+            return (int(sum_x/count)+self.offsetSubRegion_x, int(sum_y/count)+self.offsetSubRegion_y)
+        else: 
+            return (None, None)
+
+    def getROICenter(self, tmp, flag=0):
+        center = (None, None)
+
+        if flag==0 :          # template match
+            r1, r2 = self.templateMatch(tmp)
+
+            if (r1 is not None) and (r2 is not None):
+                center = (int((r1[0] + r2[0])/2), int((r1[1] + r2[1])/2))
+
+        elif flag == 1:        # detect sift keypoint and match points using RANSAC
+            center = self.siftMatch(tmp)
+            
+        return center
 
 # thread for localizing specific button, return button's coordinate
 class button_thread(threading.Thread):
-    def __init__(self, n, buttons, flag=0):
+    def __init__(self, n, buttons, loop_flag=0, match_flag=0):
         threading.Thread.__init__(self)
         self.monitor_num = n
         self.buttons = buttons
-        self.flag = flag
+        self.loop_flag = loop_flag
+        self.match_flag = match_flag    # 0 - template match; 1 - sift descriptor match
     
     def run(self):
-        if self.flag == 0:
-            self.buttonLoc1()
+        if self.loop_flag == 0:
+            self.buttonLoc_once()
         else:
-            self.buttonLoc2()
+            self.buttonLoc_loop()
 
     #localize specific button, return None if it not exist
-    def buttonLoc1(self):
+    def buttonLoc_once(self):
         c = sc.screen(self.monitor_num)
         capture = c.capture()
         factory = imgFactory(capture, c.monitor_loc[0])
@@ -118,13 +184,10 @@ class button_thread(threading.Thread):
         for i in range(len(self.buttons)):
             img = cv.imread(self.buttons[i]["path"], cv.IMREAD_GRAYSCALE)
 
-            r1, r2 = factory.getROI(img)
-            if (r1 is not None) and (r2 is not None):
-                center = (int((r1[0] + r2[0])/2), int((r1[1] + r2[1])/2))
-                self.buttons[i]["location"] = center
+            self.buttons[i]["location"] = factory.getROICenter(img, self.match_flag)
 
     #localize specific button, returen coordinate until it appears on screen
-    def buttonLoc2(self):
+    def buttonLoc_loop(self):
         c = sc.screen(self.monitor_num)
         capture = c.capture()
         factory = imgFactory(capture, c.monitor_loc[0])
@@ -141,21 +204,20 @@ class button_thread(threading.Thread):
             for i in range(len(self.buttons)):
                 img = cv.imread(self.buttons[i]["path"], cv.IMREAD_GRAYSCALE)
 
-                r1, r2 = factory.getROI(img)
-                #print(r1, r2)
-                if (r1 is not None) and (r2 is not None):
-                    center = (int((r1[0] + r2[0])/2), int((r1[1] + r2[1])/2))
-                    self.buttons[i]["location"] = center
+                center = factory.getROICenter(img, self.match_flag)
+                self.buttons[i]["location"] = center
+
+                if (center[0] is not None) and (center[1] is not None):
                     cont = False
                 else:
                     cont = True
 
 if __name__ == '__main__':
-    offer_path = r".\pic\ok_button.png"
-    offer = cv.imread(offer_path, cv.IMREAD_GRAYSCALE)
+    tmp1_path = r".\pic\offer.png"
+    tmp1 = cv.imread(tmp1_path, cv.IMREAD_GRAYSCALE)
 
-    add_path = r".\pic\add_button.png"
-    add = cv.imread(add_path, cv.IMREAD_GRAYSCALE)
+    tmp2_path = r".\pic\add.png"
+    tmp2 = cv.imread(tmp2_path, cv.IMREAD_GRAYSCALE)
 
     c = sc.screen(2)
 
@@ -163,36 +225,28 @@ if __name__ == '__main__':
         start = time.time()
         
         capture = c.capture()
+
         factory = imgFactory(capture, c.monitor_loc[0])
 
         p1 = (int(c.monitor_size[0]/2), int(c.monitor_size[1]*1/6))
         p2 = (int(c.monitor_size[0]*4/5), int(c.monitor_size[1]*5/6)) 
         factory.subRegion(p1, p2)
 
-        r1_1, r1_2 = factory.getROI(add)
-        r2_1, r2_2 = factory.getROI(offer)
+        tmp1_c = factory.getROICenter(tmp1, 1)
+        tmp2_c = factory.getROICenter(tmp2, 1)
 
-        if (r1_1 is not None) and (r1_2 is not None):
-            add_center = (int((r1_1[0] + r1_2[0])/2), int((r1_1[1] + r1_2[1])/2))
-
+        if (tmp1_c[0] is not None) and (tmp1_c[1] is not None):
             capture = cv.UMat(capture).get()
             cv.circle(capture, 
-                (add_center[0]-c.monitor_loc[0][0], add_center[1]-c.monitor_loc[0][1]), 
+                (tmp1_c[0]-c.monitor_loc[0][0], tmp1_c[1]-c.monitor_loc[0][1]), 
                 5, [0,0,255], thickness=2)
-            # cv.rectangle(capture, 
-            #     (r1_1[0]-c.monitor_loc[0][0], r1_1[1]-c.monitor_loc[0][1]),
-            #     (r1_2[0]-c.monitor_loc[0][0], r1_2[1]-c.monitor_loc[0][1]), [0,0,255], thickness=2)
 
 
-        if (r2_1 is not None) and (r2_2 is not None):
-            offer_center = (int((r2_1[0] + r2_2[0])/2), int((r2_1[1] + r2_2[1])/2))
+        if (tmp2_c[0] is not None) and (tmp2_c[1] is not None):
             capture = cv.UMat(capture).get()
             cv.circle(capture, 
-                (offer_center[0]-c.monitor_loc[0][0], offer_center[1]-c.monitor_loc[0][1]), 
+                (tmp2_c[0]-c.monitor_loc[0][0], tmp2_c[1]-c.monitor_loc[0][1]), 
                 5, [0,0,255], thickness=2)
-            # cv.rectangle(capture, 
-            #     (r2_1[0]-c.monitor_loc[0][0], r2_1[1]-c.monitor_loc[0][1]),
-            #     (r2_2[0]-c.monitor_loc[0][0], r2_2[1]-c.monitor_loc[0][1]), [0,0,255], thickness=2)
 
         end = time.time()
 

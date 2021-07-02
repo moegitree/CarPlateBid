@@ -21,7 +21,8 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         monitor_num = 2         # 1 - primary monitor; 2 - secondary monitor
-        bid = Bid.bidevent(monitor_num)   
+        match_flag = 0          # 0 - template match; 1 - sift match
+        bid = Bid.bidevent(monitor_num, match_flag)   
         self.timer = Bid.bidtimer(bid)
 
         # connect groupBox to change board color
@@ -58,6 +59,8 @@ class showGUI(QMainWindow, Ui_MainWindow):
         # comboBox 
         self.comboBox.setCurrentIndex(monitor_num-1)
         self.comboBox.currentIndexChanged.connect(lambda: self.timer.bidobj.setMonitor_num(self.comboBox.currentIndex()+1))
+        self.comboBox_2.setCurrentIndex(match_flag)
+        self.comboBox_2.currentIndexChanged.connect(self.timer.bidobj.setMatch_flag)
 
         # show auction button location
         self.timer.bidobj.signal_buttonCoordinate.connect(self.showCoordinate)
@@ -72,7 +75,10 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.timer.signal_currentTime.connect(self.clockLabel)
         self.timer.signal_secsToNextOp.connect(self.countdownLabel)
 
+        # parameter initialization
         self.setDefault()
+        self.timer.bidobj.setMonitor_num(monitor_num)   # initialize monitor_num
+        self.timer.bidobj.setMatch_flag(match_flag)     # initialize match_flag
 
         self.timer.start()
 

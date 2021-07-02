@@ -15,9 +15,10 @@ class bidevent(QObject):
     signal_secondbidPrice = pyqtSignal(str)
     signal_buttonCoordinate = pyqtSignal(list, list)
 
-    def __init__(self, monitor_num):
+    def __init__(self, monitor_num, match_flag):
         super().__init__()
-        self.monitor_num = monitor_num
+        self.monitor_num = monitor_num  # 1 - primary monitor; 2 - secondary monitor
+        self.match_flag = match_flag    # 0 - template match; 1 - sift descriptor match
         self.buttons = [
                     {   "name": "offer_button",
                         "path": r".\pic\offer_button.png", 
@@ -33,14 +34,27 @@ class bidevent(QObject):
                     },
                     {   
                         "name":  "ok2_button",
-                        "path": r".\pic\ok2_button.png",
+                        "path": r".\pic\ok_button.png",
                         "location": (None, None)
                     }
                 ] 
+
         self.bidprice = { 
                     "firstbid_price":   300, 
                     "secondbid_price":  1000
             }   
+
+    def setButtonsList(self, flag):
+        if flag == 0:
+            self.buttons[0]["path"] = r".\pic\offer_button.png"
+            self.buttons[1]["path"] = r".\pic\add_button.png"
+            self.buttons[2]["path"] = r".\pic\ok_button.png"
+            self.buttons[3]["path"] = r".\pic\ok2_button.png"
+        else:
+            self.buttons[0]["path"] = r".\pic\offer.png"
+            self.buttons[1]["path"] = r".\pic\add.png"
+            self.buttons[2]["path"] = r".\pic\ok.png"
+            self.buttons[3]["path"] = r".\pic\ok.png"           
 
     def bidevent_initialize(self):
         self.setFirstbid_price("300")
@@ -48,7 +62,10 @@ class bidevent(QObject):
 
     def setMonitor_num(self, n):
         self.monitor_num = n
-        print(self.monitor_num)
+    
+    def setMatch_flag(self, n):
+        self.match_flag = n
+        self.setButtonsList(n)
 
     def setFirstbid_price(self, value):
         self.bidprice["firstbid_price"] = value
@@ -59,7 +76,7 @@ class bidevent(QObject):
         self.signal_secondbidPrice.emit(value)
 
     def buttonrecognize(self):  #for callback
-        t = ip.button_thread(self.monitor_num, self.buttons[0:2])
+        t = ip.button_thread(self.monitor_num, self.buttons[0:2], loop_flag=0, match_flag=self.match_flag)
         t.start()
         t.join()
         print([self.buttons[i]["location"] for i in range(len(self.buttons))])
@@ -84,9 +101,9 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        time.sleep(0.3)
+        #time.sleep(0.3)
         
-        t = ip.button_thread(self.monitor_num, [self.buttons[2]])
+        t = ip.button_thread(self.monitor_num, [self.buttons[2]], loop_flag=1, match_flag=self.match_flag)
         t.start()
         t.join()
         self.signal_buttonCoordinate.emit([self.buttons[i]["location"] for i in range(len(self.buttons))], [0,0,1])
@@ -102,7 +119,7 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        t = ip.button_thread(self.monitor_num, [self.buttons[3]], 1)
+        t = ip.button_thread(self.monitor_num, [self.buttons[3]], loop_flag=1, match_flag=self.match_flag)
         t.start()
         t.join()
 
@@ -129,9 +146,9 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        time.sleep(0.3)
+        #time.sleep(0.3)
         
-        t = ip.button_thread(self.monitor_num, [self.buttons[2]])
+        t = ip.button_thread(self.monitor_num, [self.buttons[2]], loop_flag=1, match_flag=self.match_flag)
         t.start()
         t.join()
         self.signal_buttonCoordinate.emit([self.buttons[i]["location"] for i in range(len(self.buttons))], [0,0,1])
@@ -147,7 +164,7 @@ class bidevent(QObject):
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
 
-        t = ip.button_thread(self.monitor_num, [self.buttons[3]], 1)
+        t = ip.button_thread(self.monitor_num, [self.buttons[3]], loop_flag=1, match_flag=self.match_flag)
         t.start()
         t.join()
 
