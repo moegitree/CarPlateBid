@@ -6,7 +6,7 @@ from pynput.mouse import Button as m_Button
 from pynput.mouse import Controller as m_Controller
 from pynput.keyboard import Key as k_Key
 from pynput.keyboard import Controller as k_Controller
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, QTime
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, QTime, QDateTime
 
 import ImageProcess as ip
 
@@ -100,8 +100,6 @@ class bidevent(QObject):
         mouse.position = self.buttons[0]["location"]    # if button location not found, exit script with error 
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
-
-        #time.sleep(0.3)
         
         t = ip.button_thread(self.monitor_num, [self.buttons[2]], loop_flag=1, match_flag=self.match_flag)
         t.start()
@@ -145,8 +143,6 @@ class bidevent(QObject):
         mouse.position = self.buttons[0]["location"]    # if button location not found, exit script with error 
         mouse.press(m_Button.left)
         mouse.release(m_Button.left)
-
-        #time.sleep(0.3)
         
         t = ip.button_thread(self.monitor_num, [self.buttons[2]], loop_flag=1, match_flag=self.match_flag)
         t.start()
@@ -181,7 +177,7 @@ class bidtimer(QThread):
     signal_secondsubmitTime = pyqtSignal(QTime)
 
     signal_currentTime = pyqtSignal(str)
-    signal_secsToNextOp = pyqtSignal(int)
+    signal_secsToNextOp = pyqtSignal(float)
 
     signal_groupBoxRed0 = pyqtSignal()
     signal_groupBoxRed1 = pyqtSignal()
@@ -199,44 +195,54 @@ class bidtimer(QThread):
                 }  
         self.timetriggers_list = None    
 
-    def time_initialize(self):
-        self.setInitialTime(QTime(12,0,0)) # initialize to 12:00:00
+    def time_initialize(self):      # initialize to 12:00:00
+        self.setInitialTime(QTime(12,0,0)) 
         self.setFirstbidTime(QTime(12,0,0))
         self.setFirstsubmitTime(QTime(12,0,0))
         self.setSecondbidTime(QTime(12,0,0))
         self.setSecondsubmitTime(QTime(12,0,0))
 
     def setInitialTime(self, initial_qtime):
-        initial_time = initial_qtime.toString("hh:mm:ss")
-        t = datetime.datetime.strptime(initial_time, "%H:%M:%S")
+        date = QDateTime.currentDateTime()
+        date.setTime(initial_qtime)
+        initial_time = date.toString("yyyy MM dd hh:mm:ss.zzz")
+        t = datetime.datetime.strptime(initial_time, "%Y %m %d %H:%M:%S.%f")
         self.timetriggers["initial_time"][0] = t
         self.timetriggers_list = list(self.timetriggers.values())
         self.signal_initialTime.emit(initial_qtime)
 
     def setFirstbidTime(self, firstbid_qtime):
-        firstbid_time = firstbid_qtime.toString("hh:mm:ss")
-        t = datetime.datetime.strptime(firstbid_time, "%H:%M:%S")
+        date = QDateTime.currentDateTime()
+        date.setTime(firstbid_qtime)
+        firstbid_time = date.toString("yyyy MM dd hh:mm:ss.zzz")
+        t = datetime.datetime.strptime(firstbid_time, "%Y %m %d %H:%M:%S.%f")
         self.timetriggers["firstbid_time"][0] = t
         self.timetriggers_list = list(self.timetriggers.values())
         self.signal_firstbidTime.emit(firstbid_qtime)
 
     def setFirstsubmitTime(self, firstsubmit_qtime):
-        firstsubmit_time = firstsubmit_qtime.toString("hh:mm:ss")
-        t = datetime.datetime.strptime(firstsubmit_time, "%H:%M:%S")
+        date = QDateTime.currentDateTime()
+        date.setTime(firstsubmit_qtime)
+        firstsubmit_time = date.toString("yyyy MM dd hh:mm:ss.zzz")
+        t = datetime.datetime.strptime(firstsubmit_time, "%Y %m %d %H:%M:%S.%f")
         self.timetriggers["firstsubmit_time"][0] = t
         self.timetriggers_list = list(self.timetriggers.values())
         self.signal_firstsubmitTime.emit(firstsubmit_qtime)
 
     def setSecondbidTime(self, secondbid_qtime):
-        secondbid_time = secondbid_qtime.toString("hh:mm:ss")
-        t = datetime.datetime.strptime(secondbid_time, "%H:%M:%S")
+        date = QDateTime.currentDateTime()
+        date.setTime(secondbid_qtime)
+        secondbid_time = date.toString("yyyy MM dd hh:mm:ss.zzz")
+        t = datetime.datetime.strptime(secondbid_time, "%Y %m %d %H:%M:%S.%f")
         self.timetriggers["secondbid_time"][0] = t
         self.timetriggers_list = list(self.timetriggers.values())
         self.signal_secondbidTime.emit(secondbid_qtime)
 
     def setSecondsubmitTime(self, secondsubmit_qtime):
-        secondsubmit_time = secondsubmit_qtime.toString("hh:mm:ss")
-        t = datetime.datetime.strptime(secondsubmit_time, "%H:%M:%S")
+        date = QDateTime.currentDateTime()
+        date.setTime(secondsubmit_qtime)
+        secondsubmit_time = date.toString("yyyy MM dd hh:mm:ss.zzz")
+        t = datetime.datetime.strptime(secondsubmit_time, "%Y %m %d %H:%M:%S.%f")
         self.timetriggers["secondsubmit_time"][0] = t
         self.timetriggers_list = list(self.timetriggers.values())
         self.signal_secondsubmitTime.emit(secondsubmit_qtime)
@@ -255,17 +261,22 @@ class bidtimer(QThread):
             while cont:
                 time_now = datetime.datetime.now()
                 time_now_str = time_now.strftime('%H:%M:%S')
-                secs = (self.timetriggers_list[i][0]-time_now).seconds
-                #print(time_now.strftime('%H:%M:%S.%f'), secs)
+                delta = abs(self.timetriggers_list[i][0]-time_now)
+                delta_secs = delta.seconds + int(delta.microseconds/100000)/10
                 self.signal_currentTime.emit(time_now_str)
-                self.signal_secsToNextOp.emit(secs)
+                self.signal_secsToNextOp.emit(delta_secs)
+                #print(time_now.strftime('%H:%M:%S.%f'), delta_secs, delta.microseconds/10000)
 
-                if (self.timetriggers_list[i][0] - time_now).seconds == 0 and self.timetriggers_list[i][2]:
+                if delta_secs == 0 and delta.microseconds<20000 and self.timetriggers_list[i][2]:
+                    ## temp func##
+                    print(time_now.strftime('%H:%M:%S.%f'), delta.microseconds)
+                    
                     self.timetriggers_list[i][2] = False
                     self.timetriggers_list[i][1] ()  # callback self.timetriggers_list[i][1]
+                    
                     cont = False  # break
             
-                time.sleep(0.01)
+                time.sleep(0.001)
             # else:
             #     break
 

@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QThread, QTime, pyqtSignal
+from PyQt5.QtCore import QThread, QTime, QDateTime, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIntValidator
 
@@ -134,7 +134,7 @@ class showGUI(QMainWindow, Ui_MainWindow):
 
     def setTestMode(self):
         now = QTime.currentTime()
-        sec = 5
+        sec = 6
         trigger = now.addSecs(sec)
         self.timer.setInitialTime(trigger)
 
@@ -151,11 +151,11 @@ class showGUI(QMainWindow, Ui_MainWindow):
         self.timer.setSecondsubmitTime(trigger)  
 
     def setDefault(self):
-        self.timer.setInitialTime(QTime(11,27,0))
-        self.timer.setFirstbidTime(QTime(11,29,41))
-        self.timer.setFirstsubmitTime(QTime(11,29,46))
-        self.timer.setSecondbidTime(QTime(11,29,50))
-        self.timer.setSecondsubmitTime(QTime(11,29,57))
+        self.timer.setInitialTime(QTime(11,27,0,600))
+        self.timer.setFirstbidTime(QTime(11,29,41,600))
+        self.timer.setFirstsubmitTime(QTime(11,29,46,600))
+        self.timer.setSecondbidTime(QTime(11,29,50,600))
+        self.timer.setSecondsubmitTime(QTime(11,29,57,600))
         self.timer.bidobj.setFirstbid_price("400")
         self.timer.bidobj.setSecondbid_price("500")
 
